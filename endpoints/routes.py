@@ -1,33 +1,50 @@
-from flask import Blueprint, jsonify
-
+from flask import Blueprint, Flask,render_template
+import libgrid
 
 api_bp = Blueprint("api", __name__)
 
 
-@api_bp.get("/api/data")
-def get_sample_data():
-    return jsonify(
-        {
-            "data": [
-                {"id": 1, "name": "Sample Item 1", "value": 100},
-                {"id": 2, "name": "Sample Item 2", "value": 200},
-                {"id": 3, "name": "Sample Item 3", "value": 300},
-            ],
-            "total": 3,
-            "timestamp": "2024-01-01T00:00:00Z",
-        }
-    )
 
 
-@api_bp.get("/api/items/<int:item_id>")
-def get_item(item_id: int):
-    return jsonify(
-        {
-            "item": {
-                "id": item_id,
-                "name": f"Sample Item {item_id}",
-                "value": item_id * 100,
-            },
-            "timestamp": "2024-01-01T00:00:00Z",
-        }
-    )
+@api_bp.route('/', methods=['GET', 'POST'])
+def home():
+   return render_template('index.html')
+
+@api_bp.route("/grid/gid/<gid>")
+def from_gid(gid):
+    # GID Parameter Check
+    if len(gid)==14:
+        pass
+    else:
+        return {"error":"GID must be level 14"}
+    
+    # Process
+    try:
+        return {"value":libgrid.get_value_from_gid(str(gid)),"gid":gid}
+    except:
+        return {"error":"Error generating interpolated data"}
+
+@api_bp.route("/grid/coordinate/<lon>/<lat>")
+def from_lonlat(lon,lat):
+    # Coordinate validation
+    if -180<=float(lon)<=180:
+        pass
+    else:
+        return {"error":"Longitude must be -180 to 180"}
+    
+    if -90<=float(lat)<=90:
+        pass
+    else:
+        return {"error":"Longitude must be -90 to 90"}
+    
+    lon = float(lon)
+    lat = float(lat)
+
+    # Process
+    try:
+        return {"value":libgrid.get_value_from_gid(libgrid.lonlat_to_gid(lon,lat,14)),"gid":libgrid.lonlat_to_gid(lon,lat,14)}
+    except:
+        return {"error":"Error generating interpolated data"}
+
+if __name__ == "__main__":
+    api_bp.run()
